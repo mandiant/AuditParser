@@ -84,10 +84,6 @@ class timelineEntry:
 		def addUser(self, user):
 			self.user = user
 
-		# Add digital signature data to timeline object
-		def addDigSigInfo(self, digSigInfo):
-			self.digSigInfo = digSigInfo
-
 		# Add description of the sort timestamp
 		def addTimeDesc(self, timeDesc):
 			self.timeDesc = timeDesc
@@ -339,27 +335,31 @@ def buildTimeline(elem):
 		timeFields = ['Created', 'Modified', 'Accessed', 'Changed', 'FilenameCreated', 'FilenameModified', 'FilenameAccessed', 'FilenameChanged']
 		for field in timeFields:
 			if(elem.find(field) is not None): 
-				timelineData.append(timelineEntry(elem.find(field).text, elem.tag, elem.find("FullPath").text))
+				timelineData.append(timelineEntry(elem.find(field).text, elem.tag, elem.find("FullPath").text.encode("utf-8")))
 				timelineData[-1].addTimeDesc(field)
 
 				if elem.find("Md5sum") is not None: 
 					timelineData[-1].addHash(elem.find("Md5sum").text)
 		
 				if elem.find("Username") is not None:
-					timelineData[-1].addUser(elem.find("Username").text)
+					timelineData[-1].addUser(elem.find("Username").text.encode("utf-8"))
 
 	# Case 2: Registry item timeline object
 	elif(elem.tag == "RegistryItem"):
 		
-		timelineData.append(timelineEntry(elem.find("Modified").text, elem.tag, elem.find("Path").text))
+		timelineData.append(timelineEntry(elem.find("Modified").text, elem.tag, elem.find("Path").text.encode("utf-8")))
 		timelineData[-1].addTimeDesc("Modified")
 		if elem.find("Username") is not None:
-			timelineData[-1].addUser(elem.find("Username").text)
+			timelineData[-1].addUser(elem.find("Username").text.encode("utf-8"))
 	
 	# Case 3: Event log item timeline object
 	elif(elem.tag == "EventLogItem"):
 		if elem.find("message") is not None:
-			timelineData.append(timelineEntry(elem.find("genTime").text, elem.tag, elem.find("message").text))
+			strippedMessage = elem.find("message").text.replace('\r\n', '     ')
+			strippedMessage = strippedMessage.replace('\t',' ')
+			strippedMessage = strippedMessage.replace('\n', '     ')
+
+			timelineData.append(timelineEntry(elem.find("genTime").text, elem.tag, strippedMessage.encode("utf-8")))
 		else: timelineData.append(timelineEntry(elem.find("genTime").text, elem.tag, ""))
 		
 		timelineData[-1].addTimeDesc("genTime")
@@ -377,7 +377,7 @@ def printTimeline(timelineFile,startTime,endTime):
 	
 	# Output header row
 	writer = csv.writer(timelineFileHandle, dialect=csv.excel_tab)
-	headerRow = ["Timestamp", "Time Desc", "Entry Type", "Entry", "MD5", "User", "Digital Signature"]
+	headerRow = ["Timestamp", "Time Desc", "Entry Type", "Entry", "MD5", "User"]
 	writer.writerow(headerRow)
 	
 	# Print each timeline object that is within start and end time ranges
