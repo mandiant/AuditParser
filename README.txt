@@ -44,9 +44,9 @@ AuditParser.py -i input_path -o output_path --timeline --starttime yyyy-mm-ddThh
 
 The --timeline switch is optional; if enabled, --starttime and --endtime must
 be provided.  This will produce a file named "timeline.txt" in the output
-directory containing a sorted timeline of File, Event Log, and Registry items
-that fall within the supplied time range.  Other audit types are not yet
-supported.
+directory containing a sorted timeline of File, Event Log, Registry, Process,
+and Prefetch items that fall within the supplied time range.  Other audit 
+types are not yet supported.
 
 An example of a valid date format for the --starttime and --endtime options:
 2012-01-01T00:00:00Z

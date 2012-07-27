@@ -67,19 +67,16 @@ timelineData = []
 class timelineEntry:
 
 		# Initialize with timestamp, type of audit item, item contents
-		def __init__(self, timeStamp, entryType, entryItem):
+		def __init__(self, timeStamp, rowType, entryDesc, entryData):
 			self.timeObject= datetime.strptime(timeStamp, "%Y-%m-%dT%H:%M:%SZ")
-			self.entryType = entryType
-			self.entryItem = entryItem
-			self.digSigInfo = ""
-			self.md5 = ""
-			self.user = ""
+			self.rowType = rowType
+			self.entryDesc = entryDesc
+			self.entryData = entryData
+			self.entry2Desc =""
+			self.entry2Data = ""
 			self.timeDesc = ""
+			self.user = ""
 	
-		# Add a hash to timeline object
-		def addHash(self, md5):
-			self.md5 = md5
-
 		# Add a user to timeline object
 		def addUser(self, user):
 			self.user = user
@@ -88,9 +85,14 @@ class timelineEntry:
 		def addTimeDesc(self, timeDesc):
 			self.timeDesc = timeDesc
 		
+		# Add description of the sort timestamp
+		def addEntry(self, entry2Desc, entry2Data):
+			self.entry2Data = entry2Data
+			self.entry2Desc = entry2Desc
+		
 		# Return a list variable containing timeline object
 		def getTimelineRow(self):
-			rowData = [self.timeObject.isoformat(), self.timeDesc, self.entryType, self.entryItem, self.md5, self.user, self.digSigInfo]
+			rowData = [self.timeObject.isoformat(), self.timeDesc, self.rowType, self.user, self.entryDesc, self.entryData, self.entry2Desc, self.entry2Data]
 			return rowData
 
 
@@ -104,7 +106,7 @@ def printHeaders(auditType):
 	return topRow
 
 # Parse MIR agent XML input files into tab-delimited output
-def parseXML(inFile,outFile,doTimeline,startTime,endTime):
+def parseXML(inFile,outFile):
 
 	outHandle = open(outFile,'wb')
 
@@ -113,7 +115,6 @@ def parseXML(inFile,outFile,doTimeline,startTime,endTime):
 	rowCount = -1
 
 	currentAudit = ""
-	
 	# Iterate through XML
 	for event, elem in etree.iterparse(inFile):
 
@@ -202,7 +203,7 @@ def parseXML(inFile,outFile,doTimeline,startTime,endTime):
 							strippedMessage = strippedMessage.replace('\t',' ')
 							strippedMessage = strippedMessage.replace('\n', '     ')
 							row.append(strippedMessage.encode("utf-8"))
-						
+					
 					# For all other non-nested elements
 					else: 
 						rowData = elem.find(i).text or ""
@@ -214,18 +215,13 @@ def parseXML(inFile,outFile,doTimeline,startTime,endTime):
 
 			# Commit row to tab-delim file
 			writer.writerow(row)
-			
-			# Faster to just call buildTimeline on all file items rather than first test 8 time stamps for time range
-			if((currentAudit == "FileItem") and doTimeline):
-				buildTimeline(elem)
-			
-			# Only add registry item to timeline if Last Modified within time range
-			elif((currentAudit == "RegistryItem") and doTimeline and (startTime <= elem.find("Modified").text) and (endTime >= elem.find("Modified").text)):
-				buildTimeline(elem)
-
-			# Only add event log item to timeline if Event Generated within time range
-			elif((currentAudit == "EventLogItem") and doTimeline and (startTime <= elem.find("genTime").text) and (endTime >= elem.find("genTime").text)):
-				buildTimeline(elem)
+			if(doTimeline) and (currentAudit == "FileItem") or \
+			((currentAudit == "RegistryItem") and (startTime <= elem.find("Modified").text) and (endTime >= elem.find("Modified").text)) or \
+			((currentAudit == "RegistryItem") and (startTime <= elem.find("Modified").text) and (endTime >= elem.find("Modified").text)) or \
+			((currentAudit == "EventLogItem") and (startTime <= elem.find("genTime").text) and (endTime >= elem.find("genTime").text)) or \
+			((currentAudit == "UrlHistoryItem") and (startTime <= elem.find("LastVisitDate").text) and (endTime >= elem.find("LastVisitDate").text)) or \
+			((currentAudit == "ProcessItem") and (elem.find("startTime") is not None and startTime <= elem.find("startTime").text) and (endTime >= elem.find("startTime").text)):
+					buildTimeline(elem)
 				
 			rowCount += 1
 
@@ -324,22 +320,28 @@ def parsePrefetch(inFile,outFile):
 			else: row.append("")
 					
 		writer.writerow(row)
+		
+		# Add to timeline if option enabled and LastRun or Created within range
+		if doTimeline and subItem.find("LastRun").text is not None and subItem.find("Created").text is not None \
+		and ((startTime <= subItem.find("LastRun").text) and (endTime >= subItem.find("LastRun").text))  or \
+			  ((startTime <= subItem.find("Created").text) and (endTime >= subItem.find("Created").text)):
+			buildTimeline(subItem)
+
 	outHandle.close()
 	
 # Build a timeline object from a parsed element
 def buildTimeline(elem):
-	
 	# Case 1: File item timeline object
 	if(elem.tag == "FileItem"):
 		
 		timeFields = ['Created', 'Modified', 'Accessed', 'Changed', 'FilenameCreated', 'FilenameModified', 'FilenameAccessed', 'FilenameChanged']
 		for field in timeFields:
 			if(elem.find(field) is not None): 
-				timelineData.append(timelineEntry(elem.find(field).text, elem.tag, elem.find("FullPath").text.encode("utf-8")))
+				timelineData.append(timelineEntry(elem.find(field).text, elem.tag, "FullPath", elem.find("FullPath").text.encode("utf-8")))
 				timelineData[-1].addTimeDesc(field)
-
+				
 				if elem.find("Md5sum") is not None: 
-					timelineData[-1].addHash(elem.find("Md5sum").text)
+					timelineData[-1].addEntry("MD5sum",elem.find("Md5sum").text)
 		
 				if elem.find("Username") is not None:
 					timelineData[-1].addUser(elem.find("Username").text.encode("utf-8"))
@@ -347,8 +349,10 @@ def buildTimeline(elem):
 	# Case 2: Registry item timeline object
 	elif(elem.tag == "RegistryItem"):
 		
-		timelineData.append(timelineEntry(elem.find("Modified").text, elem.tag, elem.find("Path").text.encode("utf-8")))
+		timelineData.append(timelineEntry(elem.find("Modified").text, elem.tag, "Path", elem.find("Path").text.encode("utf-8")))
 		timelineData[-1].addTimeDesc("Modified")
+		if (elem.find("Text") is not None) and (elem.find("Text").text is not None):
+			timelineData[-1].addEntry("Text",elem.find("Text").text.encode("utf-8"))
 		if elem.find("Username") is not None:
 			timelineData[-1].addUser(elem.find("Username").text.encode("utf-8"))
 	
@@ -359,16 +363,43 @@ def buildTimeline(elem):
 			strippedMessage = strippedMessage.replace('\t',' ')
 			strippedMessage = strippedMessage.replace('\n', '     ')
 
-			timelineData.append(timelineEntry(elem.find("genTime").text, elem.tag, strippedMessage.encode("utf-8")))
-		else: timelineData.append(timelineEntry(elem.find("genTime").text, elem.tag, ""))
+			timelineData.append(timelineEntry(elem.find("genTime").text, elem.tag, "Message", strippedMessage.encode("utf-8")))
+		else: timelineData.append(timelineEntry(elem.find("genTime").text, elem.tag, "Message",""))
 		
+		timelineData[-1].addEntry("Log",elem.find("log").text)
 		timelineData[-1].addTimeDesc("genTime")
 		if elem.find("user") is not None:
 			timelineData[-1].addUser(elem.find("user").text)
 
+	# Case 4: URL History timeline object
+	elif(elem.tag == "UrlHistoryItem"):
+		timelineData.append(timelineEntry(elem.find("LastVisitDate").text, elem.tag, "URL", elem.find("URL").text.encode("utf-8")))
+		timelineData[-1].addTimeDesc("LastVisitDate")
+		timelineData[-1].addUser(elem.find("Username").text.encode("utf-8"))
+			
+	# Case 5: Process item timeline object
+	elif(elem.tag == "ProcessItem") and (elem.find("path").text is not None):
+		fullPath = elem.find("path").text+"\\"+elem.find("name").text
+		timelineData.append(timelineEntry(elem.find("startTime").text, elem.tag, "FullPath", fullPath.encode("utf-8")))
+		timelineData[-1].addTimeDesc("startTime")
+		timelineData[-1].addEntry("pid",elem.find("pid").text)
+		timelineData[-1].addUser(elem.find("Username").text.encode("utf-8"))
+			
+	elif(elem.tag == "PrefetchItem") and (elem.find("LastRun") is not None) and (elem.find("Created") is not None) and (elem.find("ApplicationFullPath") is not None):
+		
+		#Need to check whether LastRun or Created 
+		if(elem.find("LastRun").text > startTime) and (elem.find("LastRun").text < endTime):
+			timelineData.append(timelineEntry(elem.find("LastRun").text, elem.tag, "ApplicationFullPath", elem.find("ApplicationFullPath").text))
+			timelineData[-1].addTimeDesc("LastRun")
+			timelineData[-1].addEntry("FullPath", elem.find("FullPath").text)
+
+		if(elem.find("Created").text >= startTime) and (elem.find("Created").text <= endTime):
+			timelineData.append(timelineEntry(elem.find("Created").text, elem.tag, "ApplicationFullPath", elem.find("ApplicationFullPath").text))
+			timelineData[-1].addTimeDesc("Created")
+			timelineData[-1].addEntry("FullPath", elem.find("FullPath").text)
 			
 # Prints timeline to tab delimited text
-def printTimeline(timelineFile,startTime,endTime):
+def printTimeline(timelineFile):
 	
 	timelineFileHandle = open(timelineFile,'wb')
 	
@@ -377,7 +408,7 @@ def printTimeline(timelineFile,startTime,endTime):
 	
 	# Output header row
 	writer = csv.writer(timelineFileHandle, dialect=csv.excel_tab)
-	headerRow = ["Timestamp", "Time Desc", "Entry Type", "Entry", "MD5", "User"]
+	headerRow = ["Timestamp", "Time Desc", "RowType", "User", "EntryDesc", "EntryData", "Entry2Desc", "Entry2Data"]
 	writer.writerow(headerRow)
 	
 	# Print each timeline object that is within start and end time ranges
@@ -402,10 +433,15 @@ def main():
 		parser.print_help()
 		sys.exit(-1)
 	
+	global startTime
+	global endTime
+	global doTimeline
 	inPath = options.inPath
 	outPath = options.outPath
-	doTimeline = options.doTimeline
-	
+	doTimeline = options.doTimeline or False
+	startTime = options.startTime
+	endTime = options.endTime
+		
 	# Ensure user supplies time ranges for timeline option
 	if options.doTimeline and (not options.startTime or not options.endTime):
 		print "Timeline option requires --starttime and --endtime\n"
@@ -433,14 +469,14 @@ def main():
 	
 			if (filename.find("persistence") > 0): parsePersistence(inFile, outFile)
 			elif (filename.find("prefetch") > 0): parsePrefetch(inFile, outFile)
-			else: parseXML(inFile,outFile,doTimeline,options.startTime,options.endTime)
+			else: parseXML(inFile,outFile)
 	
 		#else: print "No more input XML files to parse!"
 		
 	# Output timeline (if option enabled) once we're done processing
 	if(doTimeline): 
 		print "Outputting timeline: " + outPath + "timeline.txt"
-		printTimeline(outPath+"timeline.txt", options.startTime, options.endTime)
+		printTimeline(outPath+"timeline.txt")
 
 if __name__ == "__main__":
 	main()
