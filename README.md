@@ -65,32 +65,31 @@ Since Audit Parser retains the original input filename, this can help you
 quickly identify what's-what when looking at a directory full of processed
 results.
 
-Redline Output Filename Prefix : Corresponding Evidence
-==========================================
-mir.cookiehistory : Web Browser Cookie History
-mir.filedownloadhistory : Web Browser File Download History
-mir.formhistory : Web Browser Form History
-mir.urlhistory : Web Browser URL History
-mir.w32apifiles : File Enumeration (API)
-mir.w32disks : Disk Listing
-mir.w32drivers-modulelist : Driver Listing
-mir.w32drivers-signature : Driver Listing
-mir.w32eventlogs : Event Logs
-mir.w32hivelist	: Registry Hive Listing
-mir.w32kernel-hookdetection : Hook Detection
-mir.w32network-arp : Network ARP Tables
-mir.w32network-dns : Network DNS Cache
-mir.w32network-route : Network Routing Tables
-mir.w32ports : Network Ports / Netstat Data
-mir.w32prefetch : Prefetch Analysis
-mir.w32processes-memory : Process Enumeration (Memory)
-mir.w32rawfiles : File Enumeration (Raw)
-mir.w32registryapi : Registry Enumeration (API)
-mir.w32registryraw : Registry Enumeration (Raw)
-mir.w32scripting-persistence : File and Registry Persistence
-mir.w32services : Windows Services
-mir.w32system : System Information
-mir.w32systemrestore : System Restore Points
-mir.w32tasks : Task Listing
-mir.w32useraccounts : User Accounts
-mir.w32volumes : Volume Listing
+# Redline Output Filename Prefix : Corresponding Evidence
+* mir.cookiehistory : Web Browser Cookie History
+* mir.filedownloadhistory : Web Browser File Download History
+* mir.formhistory : Web Browser Form History
+* mir.urlhistory : Web Browser URL History
+* mir.w32apifiles : File Enumeration (API)
+* mir.w32disks : Disk Listing
+* mir.w32drivers-modulelist : Driver Listing
+* mir.w32drivers-signature : Driver Listing
+* mir.w32eventlogs : Event Logs
+* mir.w32hivelist	: Registry Hive Listing
+* mir.w32kernel-hookdetection : Hook Detection
+* mir.w32network-arp : Network ARP Tables
+* mir.w32network-dns : Network DNS Cache
+* mir.w32network-route : Network Routing Tables
+* mir.w32ports : Network Ports / Netstat Data
+* mir.w32prefetch : Prefetch Analysis
+* mir.w32processes-memory : Process Enumeration (Memory)
+* mir.w32rawfiles : File Enumeration (Raw)
+* mir.w32registryapi : Registry Enumeration (API)
+* mir.w32registryraw : Registry Enumeration (Raw)
+* mir.w32scripting-persistence : File and Registry Persistence
+* mir.w32services : Windows Services
+* mir.w32system : System Information
+* mir.w32systemrestore : System Restore Points
+* mir.w32tasks : Task Listing
+* mir.w32useraccounts : User Accounts
+* mir.w32volumes : Volume Listing
