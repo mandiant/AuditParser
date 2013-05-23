@@ -41,7 +41,7 @@ d['PortItem'] = ['pid', 'process', 'path', 'state', 'localIP', 'remoteIP', 'loca
 d['UrlHistoryItem'] = ['Profile', 'BrowserName', 'BrowserVersion', 'Username', 'URL', 'LastVisitDate', 'VisitType']
 d['ProcessItem'] = ['pid', 'parentpid', 'path', 'name', 'arguments', 'Username', 'SecurityID', 'SecurityType', 'startTime']
 d['EventLogItem'] = ['EID', 'log', 'index', 'type', 'genTime', 'writeTime', 'source', 'machine', 'user', 'message']
-d['ServiceItem'] = ['name', 'descriptiveName', 'description', 'mode', 'startedAs', 'path', 'pathmd5sum', 'pathSignatureExists', 'pathSignatureVerified', 'pathSignatureDescription', 'pathCertificateSubject', 'pathCertificateIssuer', 'arguments', 'status', 'pid', 'type']
+d['ServiceItem'] = ['name', 'descriptiveName', 'description', 'mode', 'startedAs', 'path', 'arguments', 'pathmd5sum', 'pathSignatureExists', 'pathSignatureVerified', 'pathSignatureDescription', 'pathCertificateSubject', 'pathCertificateIssuer', 'serviceDLL', 'serviceDLLmd5sum', 'serviceDLLSignatureExists', 'serviceDLLSignatureVerified', 'serviceDLLSignatureDescription', 'serviceDLLCertificateSubject', 'serviceDLLCertificateIssuer', 'status', 'pid', 'type']
 d['ModuleItem'] = ['ModuleAddress', 'ModuleInit', 'ModuleBase', 'ModuleSize', 'ModulePath', 'ModuleName']
 d['DriverItem'] = ['DriverObjectAddress', 'ImageBase', 'ImageSize', 'DriverName', 'DriverInit', 'DriverStartIo', 'DriverUnload', 'Md5sum', 'SignatureExists', 'SignatureVerified', 'SignatureDescription', 'CertificateIssuer']
 d['HiveItem'] = ['Name', 'Path']
@@ -141,7 +141,7 @@ def parseXML(inFile,outFile):
 								for k in list(j):
 									digSigList.append(k.tag + " : " + (k.text or "[]"))
 						separator = " | "
-						row.append(separator.join(digSigList))
+						row.append(separator.join(digSigList).encode("utf-8"))
 					
 					# Special case for nested Stream data within FileItem audit results
 					elif((elem.find(i).tag == "StreamList") and (elem.tag == "FileItem")): 
@@ -152,7 +152,7 @@ def parseXML(inFile,outFile):
 								for k in list(j):
 									streamList.append(k.tag + " : " + (k.text or "[]"))
 						separator = " | "
-						row.append(separator.join(streamList))
+						row.append(separator.join(streamList).encode("utf-8"))
 						
 					# Special case for nested network config data within System audit results
 					elif((elem.find(i).tag == "networkArray") and (elem.tag == "SystemInfoItem")): 
